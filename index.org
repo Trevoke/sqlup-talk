@@ -204,4 +204,5 @@ Yeah, sqlup is two years old, so I'm batting a thousand.
 * Links
  - http://nullprogram.com/blog/2013/02/06/ gave me an understanding of how to start writing =sqlup-mode=
  - https://rejeep.github.io/ blog entries that helped me get tests running
+ - https://github.com/Trevoke/sqlup-talk is where the source for this talk is
 * Thanks!
