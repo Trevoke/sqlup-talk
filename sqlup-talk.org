@@ -1,0 +1,207 @@
+#+OPTIONS:     H:3 num:nil toc:nil \n:nil ::t |:t ^:nil -:nil f:t *:t <:t reveal_title_slide:nil reveal_slide_number:nil reveal_progress:t reveal_history:t reveal_center:t
+#+REVEAL_THEME: solarized
+
+* Sqlup.el : the story of the minor mode that could
+Or, how Ι stopped worrying and learned to love emacs
+
+Because, why spend five minutes doing something you can spend ten years automating?
+* Short intro to me
+I'm Aldric Giacomoni in meatspace
+
+I'm Trevoke in cyberspace
+
+Find me at trevoke@gmail.com
+
+I study martial arts (the relevance will soon dawn upon you)
+** Emacs and me
+Because everyone's origin story can be instructive
+- college
+- Rubymine
+- vim
+- emacs
+* Friendly manual to this talk
+If you're just reading the slides, you'll see emacs functions.
+Just use =C-h <function-name>= in emacs and seize the power.
+* Short intro to modes
+- One major mode
+- Many minor modes
+* The simplest minor mode
+#+BEGIN_SRC emacs-lisp
+(define-minor-mode miyagi-mode
+  "Teaches you martial arts without you even knowing it"
+  (if miyagi-mode
+      (message "Wax on")
+    (message "Wax off")))
+#+END_SRC
+* How sqlup started
+- There is a Right Way™ to write SQL
+- I'm *SO* lazy
+- Can't emacs do /EVERYTHING/?
+* Enter The Friend
+#+BEGIN_QUOTE
+Oh sure, you just need a keyword list and you look back and see if the word is in the list.
+
+— Eric Jones
+#+END_QUOTE
+At this point, I knew exactly *nothing* of emacs-lisp.
+* Implementation for v1
+This version took over the space and open-parens keys, and replaced the last word (emacs symbol, really) with its upcased counterpart if it was found in a list.
+** =message=
+It's Ye Olde Friendly Logger
+#+BEGIN_SRC emacs-lisp
+(message "Hello, world!")
+#+END_SRC
+** =thing-at-point=
+It returns the kind of thing… at point… that you specify
+#+BEGIN_SRC emacs-lisp
+(thing-at-point 'symbol)
+#+END_SRC
+** =bounds-of-thing-at-point=
+A cons cell with the buffer position for …
+
+Start and end of… Thing… At point…
+#+BEGIN_SRC emacs-lisp
+(bounds-of-thing-at-point 'symbol)
+#+END_SRC
+** =interactive=
+This function is used to tell emacs that you're writing an extended command (=M-x miyagi=)
+#+BEGIN_SRC emacs-lisp
+(defun miyagi ()
+  (interactive)
+  (message "Show me… Paint the fence!"))
+#+END_SRC
+** The meat of it
+#+BEGIN_SRC emacs-lisp
+  (setq current-word-upcase (upcase (thing-at-point 'symbol)))
+  (setq current-word-boundaries (bounds-of-thing-at-point 'symbol))
+  (delete-region
+    (car current-word-boundaries)
+    (cdr current-word-boundaries))
+  (insert current-word-upcase)
+#+END_SRC
+* Flaws with v1
+- =insert= operates out of the event loop
+#+BEGIN_SRC emacs-lisp
+(insert "(")
+#+END_SRC
+- limited matching capability (just strings)
+* "Batch mode"
+I added a function to capitalize SQL keywords in a region.
+** =while=
+#+BEGIN_SRC emacs-lisp
+  (while
+      true
+    (message "Oh good, a `while true` loop."))
+#+END_SRC
+** =search-forward-regexp=
+With =replace-match=
+#+BEGIN_SRC emacs-lisp
+(search-forward-regexp "[[:alpha:]_]+" (point-max))
+(replace-match "Miyagi!")
+#+END_SRC
+** =save-excursion=
+#+BEGIN_SRC emacs-lisp
+;; In Okinawa, belt mean no need rope to hold up pants.
+(save-excursion
+  (goto-char (point-min))
+  (while (search-forward-regexp "rope" (point-max) t)
+  (replace-match "belt")))
+#+END_SRC
+* Implementation for v2
+Now sqlup uses a post-command hook, working directly with emacs' event loop.
+** =post-command-hook=
+#+BEGIN_SRC emacs-lisp
+;; The fourth argument means "buffer-local" if non-nil
+(add-hook 'post-command-hook 'do-something nil t)
+#+END_SRC
+Arguable choice. Runs ALL THE TIME. So, early guard clauses are imperative.
+#+BEGIN_SRC emacs-lisp
+(defun sqlup-should-do-work-p ()
+  (or (sqlup-user-pressed-return-p)
+      (and (sqlup-user-is-typing-p)
+           (sqlup-trigger-self-insert-character-p))))
+#+END_SRC
+** =this-command-keys-vector=
+#+BEGIN_SRC emacs-lisp
+(defun sqlup-user-pressed-return-p ()
+  (equal 13 (elt (this-command-keys-vector) 0)))
+#+END_SRC
+** =symbol-name= with =this-command=
+#+BEGIN_SRC emacs-lisp
+(defun sqlup-user-is-typing-p ()
+  (string= "self-insert-command" (symbol-name this-command)))
+#+END_SRC
+** Oh yeah, also leverage =sql-mode= !
+#+BEGIN_SRC emacs-lisp
+(sql-add-product-keywords 'ansi '())
+#+END_SRC
+* Required tweaks for v2
+** Pull the correct keywords from =sql-mode=
+#+BEGIN_SRC emacs-lisp
+  (defun sqlup-find-correct-keywords ()
+    (if (and (boundp 'sql-mode-font-lock-keywords)
+             sql-mode-font-lock-keywords)
+        (mapcar 'car sql-mode-font-lock-keywords)
+      (mapcar 'car (sql-add-product-keywords
+                    (or (and (boundp 'sql-product) sql-product)
+                        'ansi) '()))))
+#+END_SRC
+* Lesson learned
+This looks so simple NOW.
+#+BEGIN_SRC emacs-lisp
+(defun sqlup-maybe-capitalize-last-symbol ()
+  (forward-symbol -1)
+  (sqlup-work-on-symbol-at-point))
+#+END_SRC
+
+* Lesson learned
+Wait, emacs can do WHAT?
+#+BEGIN_SRC emacs-lisp
+(defun sqlup-comment-p (line)
+  (nth 4 (syntax-ppss)))
+#+END_SRC
+Trust me. Write down =syntax-ppss= and look it up.
+*  =syntax-ppss=..
+Okay, so if you've looked up =syntax-ppsss=...
+
+Its behavior hinges on the current major mode.
+
+So .... V3, coming next ........ Is a hack
+* V3?! emacs is SO POWERFUL!
+Here's the hack.
+#+BEGIN_SRC emacs-lisp
+(defun sqlup-capitalizable-p (point-location)
+  (let ((old-buffer (current-buffer)))
+    (with-temp-buffer
+      (insert-buffer-substring old-buffer)
+      (sql-mode)
+      (goto-char point-location)
+      (and (not (sqlup-commentp))
+	   (not (sqlup-stringp))))))
+#+END_SRC
+This is the implementation I'm *most* ashamed of. Mostly because I've received no feedback from emacs hackers on it yet.
+* v .. 3.5 ? redis
+I got a request for redis-mode support.
+
+Luckily, redis-mode provides a list of keywords.
+** Ze Code
+#+BEGIN_SRC emacs-lisp
+  (defun sqlup-find-correct-keywords ()
+    (cond ((sqlup-redis-mode-p) (mapcar 'downcase redis-keywords))
+          ((sqlup-within-sql-buffer-p) (mapcar 'car sql-mode-font-lock-keywords))
+          (t (mapcar 'car (sql-add-product-keywords
+                           (or (and (boundp 'sql-product) sql-product)
+                               'ansi) '())))))
+
+  (defun sqlup-redis-mode-p ()
+    (string= (with-current-buffer (current-buffer) major-mode)
+             "redis-mode"))
+#+END_SRC
+* What about tests?
+ I AM SO EXCITED BECAUSE I GOT SOME TESTS WORKING LAST WEEK!
+
+Yeah, sqlup is two years old, so I'm batting a thousand.
+* Links
+ - http://nullprogram.com/blog/2013/02/06/ gave me an understanding of how to start writing =sqlup-mode=
+ - https://rejeep.github.io/ blog entries that helped me get tests running
+* Thanks!

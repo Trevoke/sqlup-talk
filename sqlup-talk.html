@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title></title>
+<meta name="author" content="(Aldric Giacomoni)"/>
+<style type="text/css">
+.underline { text-decoration: underline; }
+</style>
+<link rel="stylesheet" href="file:///Users/aldric/src/vendor/reveal.js-3.3.0/css/reveal.css"/>
+
+<link rel="stylesheet" href="file:///Users/aldric/src/vendor/reveal.js-3.3.0/css/theme/solarized.css" id="theme"/>
+
+
+<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+<script>
+    if( window.location.search.match( /print-pdf/gi ) ) {
+        var link = document.createElement( 'link' );
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = 'file:///Users/aldric/src/vendor/reveal.js-3.3.0/css/print/pdf.css';
+        document.getElementsByTagName( 'head' )[0].appendChild( link );
+    }
+</script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<section>
+<section id="slide-orgheadline1">
+<h2 id="orgheadline1">Sqlup.el : the story of the minor mode that could</h2>
+<p>
+Or, how Ι stopped worrying and learned to love emacs
+</p>
+
+<p>
+Because, why spend five minutes doing something you can spend ten years automating?
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline3">
+<h2 id="orgheadline3">Short intro to me</h2>
+<p>
+I'm Aldric Giacomoni in meatspace
+</p>
+
+<p>
+I'm Trevoke in cyberspace
+</p>
+
+<p>
+Find me at trevoke@gmail.com
+</p>
+
+<p>
+I study martial arts (the relevance will soon dawn upon you)
+</p>
+</section>
+<section id="slide-orgheadline2">
+<h3 id="orgheadline2">Emacs and me</h3>
+<p>
+Because everyone's origin story can be instructive
+</p>
+<ul>
+<li>college</li>
+<li>Rubymine</li>
+<li>vim</li>
+<li>emacs</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline4">
+<h2 id="orgheadline4">Friendly manual to this talk</h2>
+<p>
+If you're just reading the slides, you'll see emacs functions.
+Just use <code>C-h &lt;function-name&gt;</code> in emacs and seize the power.
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline5">
+<h2 id="orgheadline5">Short intro to modes</h2>
+<ul>
+<li>One major mode</li>
+<li>Many minor modes</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline6">
+<h2 id="orgheadline6">The simplest minor mode</h2>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">define-minor-mode</span> <span style="color: #f2650d;">miyagi-mode</span>
+  <span style="color: #91AC53;">"Teaches you martial arts without you even knowing it"</span>
+  (<span style="color: #3a5ca6;">if</span> miyagi-mode
+      (message <span style="color: #58a329;">"Wax on"</span>)
+    (message <span style="color: #58a329;">"Wax off"</span>)))
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline7">
+<h2 id="orgheadline7">How sqlup started</h2>
+<ul>
+<li>There is a Right Way™ to write SQL</li>
+<li>I'm <b>SO</b> lazy</li>
+<li>Can't emacs do <i>EVERYTHING</i>?</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline8">
+<h2 id="orgheadline8">Enter The Friend</h2>
+<blockquote nil>
+<p>
+Oh sure, you just need a keyword list and you look back and see if the word is in the list.
+</p>
+
+<p>
+— Eric Jones
+</p>
+</blockquote>
+<p>
+At this point, I knew exactly <b>nothing</b> of emacs-lisp.
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline14">
+<h2 id="orgheadline14">Implementation for v1</h2>
+<p>
+This version took over the space and open-parens keys, and replaced the last word (emacs symbol, really) with its upcased counterpart if it was found in a list.
+</p>
+</section>
+<section id="slide-orgheadline9">
+<h3 id="orgheadline9"><code>message</code></h3>
+<p>
+It's Ye Olde Friendly Logger
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(message <span style="color: #58a329;">"Hello, world!"</span>)
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline10">
+<h3 id="orgheadline10"><code>thing-at-point</code></h3>
+<p>
+It returns the kind of thing… at point… that you specify
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(thing-at-point 'symbol)
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline11">
+<h3 id="orgheadline11"><code>bounds-of-thing-at-point</code></h3>
+<p>
+A cons cell with the buffer position for …
+</p>
+
+<p>
+Start and end of… Thing… At point…
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(bounds-of-thing-at-point 'symbol)
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline12">
+<h3 id="orgheadline12"><code>interactive</code></h3>
+<p>
+This function is used to tell emacs that you're writing an extended command (<code>M-x miyagi</code>)
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">miyagi</span> ()
+  (interactive)
+  (message <span style="color: #58a329;">"Show me&#8230; Paint the fence!"</span>))
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline13">
+<h3 id="orgheadline13">The meat of it</h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(setq current-word-upcase (upcase (thing-at-point 'symbol)))
+(setq current-word-boundaries (bounds-of-thing-at-point 'symbol))
+(delete-region
+  (car current-word-boundaries)
+  (cdr current-word-boundaries))
+(insert current-word-upcase)
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline15">
+<h2 id="orgheadline15">Flaws with v1</h2>
+<ul>
+<li><code>insert</code> operates out of the event loop</li>
+
+</ul>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(insert <span style="color: #58a329;">"("</span>)
+</pre>
+</div>
+<ul>
+<li>limited matching capability (just strings)</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline19">
+<h2 id="orgheadline19">"Batch mode"</h2>
+<p>
+I added a function to capitalize SQL keywords in a region.
+</p>
+</section>
+<section id="slide-orgheadline16">
+<h3 id="orgheadline16"><code>while</code></h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">while</span>
+    true
+  (message <span style="color: #58a329;">"Oh good, a `while true` loop."</span>))
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline17">
+<h3 id="orgheadline17"><code>search-forward-regexp</code></h3>
+<p>
+With <code>replace-match</code>
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(search-forward-regexp <span style="color: #58a329;">"[[:alpha:]_]+"</span> (point-max))
+(replace-match <span style="color: #58a329;">"Miyagi!"</span>)
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline18">
+<h3 id="orgheadline18"><code>save-excursion</code></h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp"><span style="color: #525252; font-style: italic;">;; </span><span style="color: #525252; font-style: italic;">In Okinawa, belt mean no need rope to hold up pants.</span>
+(<span style="color: #3a5ca6;">save-excursion</span>
+  (goto-char (point-min))
+  (<span style="color: #3a5ca6;">while</span> (search-forward-regexp <span style="color: #58a329;">"rope"</span> (point-max) t)
+  (replace-match <span style="color: #58a329;">"belt"</span>)))
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline24">
+<h2 id="orgheadline24">Implementation for v2</h2>
+<p>
+Now sqlup uses a post-command hook, working directly with emacs' event loop.
+</p>
+</section>
+<section id="slide-orgheadline20">
+<h3 id="orgheadline20"><code>post-command-hook</code></h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp"><span style="color: #525252; font-style: italic;">;; </span><span style="color: #525252; font-style: italic;">The fourth argument means "buffer-local" if non-nil</span>
+(add-hook 'post-command-hook 'do-something nil t)
+</pre>
+</div>
+<p>
+Arguable choice. Runs ALL THE TIME. So, early guard clauses are imperative.
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-should-do-work-p</span> ()
+  (or (sqlup-user-pressed-return-p)
+      (and (sqlup-user-is-typing-p)
+           (sqlup-trigger-self-insert-character-p))))
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline21">
+<h3 id="orgheadline21"><code>this-command-keys-vector</code></h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-user-pressed-return-p</span> ()
+  (equal 13 (elt (this-command-keys-vector) 0)))
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline22">
+<h3 id="orgheadline22"><code>symbol-name</code> with <code>this-command</code></h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-user-is-typing-p</span> ()
+  (string= <span style="color: #58a329;">"self-insert-command"</span> (symbol-name this-command)))
+</pre>
+</div>
+</section>
+<section id="slide-orgheadline23">
+<h3 id="orgheadline23">Oh yeah, also leverage <code>sql-mode</code> !</h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(sql-add-product-keywords 'ansi '())
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline26">
+<h2 id="orgheadline26">Required tweaks for v2</h2>
+<div class="outline-text-2" id="text-orgheadline26">
+</div></section>
+<section id="slide-orgheadline25">
+<h3 id="orgheadline25">Pull the correct keywords from <code>sql-mode</code></h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-find-correct-keywords</span> ()
+  (<span style="color: #3a5ca6;">if</span> (and (boundp 'sql-mode-font-lock-keywords)
+           sql-mode-font-lock-keywords)
+      (mapcar 'car sql-mode-font-lock-keywords)
+    (mapcar 'car (sql-add-product-keywords
+                  (or (and (boundp 'sql-product) sql-product)
+                      'ansi) '()))))
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline27">
+<h2 id="orgheadline27">Lesson learned</h2>
+<p>
+This looks so simple NOW.
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-maybe-capitalize-last-symbol</span> ()
+  (forward-symbol -1)
+  (sqlup-work-on-symbol-at-point))
+</pre>
+</div>
+
+</section>
+</section>
+<section>
+<section id="slide-orgheadline28">
+<h2 id="orgheadline28">Lesson learned</h2>
+<p>
+Wait, emacs can do WHAT?
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-comment-p</span> (line)
+  (nth 4 (syntax-ppss)))
+</pre>
+</div>
+<p>
+Trust me. Write down <code>syntax-ppss</code> and look it up.
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline29">
+<h2 id="orgheadline29"><code>syntax-ppss</code>..</h2>
+<p>
+Okay, so if you've looked up <code>syntax-ppsss</code>...
+</p>
+
+<p>
+Its behavior hinges on the current major mode.
+</p>
+
+<p>
+So .... V3, coming next ........ Is a hack
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline30">
+<h2 id="orgheadline30">V3?! emacs is SO POWERFUL!</h2>
+<p>
+Here's the hack.
+</p>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-capitalizable-p</span> (point-location)
+  (<span style="color: #3a5ca6;">let</span> ((old-buffer (current-buffer)))
+    (<span style="color: #3a5ca6;">with-temp-buffer</span>
+      (insert-buffer-substring old-buffer)
+      (sql-mode)
+      (goto-char point-location)
+      (and (not (sqlup-commentp))
+           (not (sqlup-stringp))))))
+</pre>
+</div>
+<p>
+This is the implementation I'm <b>most</b> ashamed of. Mostly because I've received no feedback from emacs hackers on it yet.
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline32">
+<h2 id="orgheadline32">v .. 3.5 ? redis</h2>
+<p>
+I got a request for redis-mode support.
+</p>
+
+<p>
+Luckily, redis-mode provides a list of keywords.
+</p>
+</section>
+<section id="slide-orgheadline31">
+<h3 id="orgheadline31">Ze Code</h3>
+<div class="org-src-container">
+
+<pre  class="src src-emacs-lisp">(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-find-correct-keywords</span> ()
+  (<span style="color: #3a5ca6;">cond</span> ((sqlup-redis-mode-p) (mapcar 'downcase redis-keywords))
+        ((sqlup-within-sql-buffer-p) (mapcar 'car sql-mode-font-lock-keywords))
+        (t (mapcar 'car (sql-add-product-keywords
+                         (or (and (boundp 'sql-product) sql-product)
+                             'ansi) '())))))
+
+(<span style="color: #3a5ca6;">defun</span> <span style="color: #f2650d;">sqlup-redis-mode-p</span> ()
+  (string= (<span style="color: #3a5ca6;">with-current-buffer</span> (current-buffer) major-mode)
+           <span style="color: #58a329;">"redis-mode"</span>))
+</pre>
+</div>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline33">
+<h2 id="orgheadline33">What about tests?</h2>
+<p>
+I AM SO EXCITED BECAUSE I GOT SOME TESTS WORKING LAST WEEK!
+</p>
+
+<p>
+Yeah, sqlup is two years old, so I'm batting a thousand.
+</p>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline34">
+<h2 id="orgheadline34">Links</h2>
+<ul>
+<li><a href="http://nullprogram.com/blog/2013/02/06/">http://nullprogram.com/blog/2013/02/06/</a> gave me an understanding of how to start writing <code>sqlup-mode</code></li>
+<li><a href="https://rejeep.github.io/">https://rejeep.github.io/</a> blog entries that helped me get tests running</li>
+
+</ul>
+</section>
+</section>
+<section>
+<section id="slide-orgheadline35">
+<h2 id="orgheadline35">Thanks!</h2>
+</section>
+</section>
+</div>
+</div>
+<script src="file:///Users/aldric/src/vendor/reveal.js-3.3.0/lib/js/head.min.js"></script>
+<script src="file:///Users/aldric/src/vendor/reveal.js-3.3.0/js/reveal.js"></script>
+
+<script>
+// Full list of configuration options available here:
+// https://github.com/hakimel/reveal.js#configuration
+Reveal.initialize({
+
+controls: true,
+progress: true,
+history: true,
+center: true,
+slideNumber: false,
+rollingLinks: false,
+keyboard: true,
+overview: true,
+
+theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+transitionSpeed: 'default',
+multiplex: {
+    secret: '', // null if client
+    id: '', // id, obtained from socket.io server
+    url: '' // Location of socket.io server
+},
+
+// Optional libraries used to extend on reveal.js
+dependencies: [
+ { src: 'file:///Users/aldric/src/vendor/reveal.js-3.3.0/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+ { src: 'file:///Users/aldric/src/vendor/reveal.js-3.3.0/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+ { src: 'file:///Users/aldric/src/vendor/reveal.js-3.3.0/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+ { src: 'file:///Users/aldric/src/vendor/reveal.js-3.3.0/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+ { src: 'file:///Users/aldric/src/vendor/reveal.js-3.3.0/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }]
+});
+</script>
+</body>
+</html>
