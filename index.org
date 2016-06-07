@@ -21,7 +21,7 @@ Because everyone's origin story can be instructive
 - emacs
 * Friendly manual to this talk
 If you're just reading the slides, you'll see emacs functions.
-Just use =C-h <function-name>= in emacs and seize the power.
+Just use =C-h f <function-name>= in emacs and seize the power.
 * Short intro to modes
 - One major mode
 - Many minor modes
